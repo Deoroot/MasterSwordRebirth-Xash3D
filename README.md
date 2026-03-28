@@ -163,9 +163,47 @@ The original (vanilla) ReHLDS implementation looks up the AppID dynamically from
 - **Changing the AppID requires recompiling** the engine (`sv_main.cpp`, lines ~8577-8581)
 - On startup, the dedicated server writes this value to `steam_appid.txt` and registers with Steam master servers under AppID 1961680
 
+#### How to change the AppID and recompile MSRevive's ReHLDS
+
+**Prerequisites:** Visual Studio 2022 (or Build Tools) with C++ Desktop workload, Win32 (x86) target.
+
+**Step 1 -- Modify the AppID** in `src/engine/sv_main.cpp`:
+
+```cpp
+// ~line 8574: update the table entry
+{ 0x1DEED0, "msrebirth" }    // 0x1DEED0 = 1961680. Change to desired AppID/gamedir
+
+// ~line 8577-8581: update the hardcoded return
+#define MSS_APPID 1961680    // <-- change this value to the desired AppID
+int GetGameAppID(void)
+{
+    return MSS_APPID;
+}
+```
+
+**Step 2 -- Recompile** using MSBuild (the CMakeLists.txt does not support Windows):
+
+```bat
+msbuild ReHLDS.sln /p:Configuration=Release /p:Platform=Win32
+```
+
+Or with full path to MSBuild if not in a Developer Command Prompt:
+
+```bat
+"C:\Program Files\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe" ReHLDS.sln /p:Configuration=Release /p:Platform=Win32
+```
+
+**Step 3 -- Deploy** the compiled binaries from `bins/Release/`:
+
+| File | Description |
+|------|-------------|
+| `swds.dll` | Server engine DLL (the main output) |
+| `hlds.exe` | Dedicated server launcher |
+| `filesystem_stdio.dll` | Filesystem module |
+
 ### Server side (vanilla ReHLDS)
 
-The vanilla [dreamstalker/rehlds](https://github.com/dreamstalker/rehlds) **does support different AppIDs** per game directory. It uses a lookup table in `sv_main.cpp`:
+The vanilla [dreamstalker/rehlds](https://github.com/dreamstalker/rehlds) **does support different AppIDs** per game directory. Unlike the MSRevive fork, its `GetGameAppID()` dynamically looks up the AppID from a table based on the active game directory (`com_gamedir`):
 
 ```cpp
 GameToAppIDMapItem_t g_GameToAppIDMap[] = {
@@ -184,16 +222,16 @@ GameToAppIDMapItem_t g_GameToAppIDMap[] = {
 
 int GetGameAppID(void)
 {
-    // looks up com_gamedir in g_GameToAppIDMap
-    // returns the matching AppID, or 70 as fallback
+    // iterates g_GameToAppIDMap comparing pGameDir with com_gamedir
+    // returns matching AppID, or 70 (Half-Life) as fallback
 }
 ```
 
-To add MSR support to vanilla ReHLDS, you would need to modify **one file** (`rehlds/engine/sv_main.cpp`):
+To add MSR support to vanilla ReHLDS, modify **one file** (`rehlds/engine/sv_main.cpp`):
 
 1. Add an entry to `g_GameToAppIDMap`: `{ 1961680, "msr" }` (or your game directory name)
 2. Increase the array size accordingly
-3. Recompile
+3. Recompile with the same MSBuild command above
 
 The vanilla implementation will then automatically use AppID 1961680 when the server runs with `-game msr`. No other files need modification.
 
