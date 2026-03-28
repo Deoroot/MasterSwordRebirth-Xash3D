@@ -208,6 +208,10 @@ build-xash/*
 bins/debug/*
 bins/release/*
 
+# Allow pre-built dependencies (xash.dll, etc.)
+!bins/dependencies/
+!bins/dependencies/**
+
 # Utils build
 utils/build/*
 utils/*/build/*
