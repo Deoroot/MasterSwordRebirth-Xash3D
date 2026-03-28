@@ -146,16 +146,56 @@ The Xash3D build also compiles and deploys:
 
 For a Xash3D client to successfully connect to a GoldSrc/ReHLDS server with Steam authentication, both sides must agree on the same **Steam AppID**. Here's how each component uses it:
 
-### Server side (ReHLDS)
+### Server side (MSRevive's modified ReHLDS)
 
-The MSR-modified ReHLDS engine has the AppID **hardcoded to `1961680`** (MS Rebirth) in `sv_main.cpp`:
+> **Note:** This section refers to the [MSRevive fork of ReHLDS](https://github.com/MSRevive/MSR-ReHLDS), **not** the vanilla [dreamstalker/rehlds](https://github.com/dreamstalker/rehlds).
+
+The MSRevive-modified ReHLDS engine has the AppID **hardcoded to `1961680`** (MS Rebirth) in `sv_main.cpp`:
 
 ```cpp
 #define MSS_APPID 1961680
 int GetGameAppID(void) { return MSS_APPID; }
 ```
 
-On startup, the dedicated server writes this value to `steam_appid.txt` and registers with Steam master servers under AppID 1961680. **This cannot be changed at runtime** -- it requires recompiling the engine.
+The original (vanilla) ReHLDS implementation looks up the AppID dynamically from a table (`g_GameToAppIDMap`) based on the active game directory (`com_gamedir`). The MSRevive fork replaced that logic with a hardcoded return value. This means:
+
+- The server **always** registers with Steam as AppID 1961680, regardless of game directory
+- **Changing the AppID requires recompiling** the engine (`sv_main.cpp`, lines ~8577-8581)
+- On startup, the dedicated server writes this value to `steam_appid.txt` and registers with Steam master servers under AppID 1961680
+
+### Server side (vanilla ReHLDS)
+
+The vanilla [dreamstalker/rehlds](https://github.com/dreamstalker/rehlds) **does support different AppIDs** per game directory. It uses a lookup table in `sv_main.cpp`:
+
+```cpp
+GameToAppIDMapItem_t g_GameToAppIDMap[] = {
+    { 10,  "cstrike" },
+    { 20,  "tfc" },
+    { 30,  "dod" },
+    { 40,  "dmc" },
+    { 50,  "gearbox" },
+    { 60,  "ricochet" },
+    { 70,  "valve" },
+    { 80,  "czero" },
+    { 100, "czeror" },
+    { 130, "bshift" },
+    { 150, "cstrike_beta" },
+};
+
+int GetGameAppID(void)
+{
+    // looks up com_gamedir in g_GameToAppIDMap
+    // returns the matching AppID, or 70 as fallback
+}
+```
+
+To add MSR support to vanilla ReHLDS, you would need to modify **one file** (`rehlds/engine/sv_main.cpp`):
+
+1. Add an entry to `g_GameToAppIDMap`: `{ 1961680, "msr" }` (or your game directory name)
+2. Increase the array size accordingly
+3. Recompile
+
+The vanilla implementation will then automatically use AppID 1961680 when the server runs with `-game msr`. No other files need modification.
 
 ### Client side (Xash3D + Steam Broker)
 
