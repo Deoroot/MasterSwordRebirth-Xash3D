@@ -5,6 +5,12 @@ Based on [MSRevive/MasterSwordRebirth](https://github.com/MSRevive/MasterSwordRe
 
 This fork produces **client.dll** and **ms.dll** for both **GoldSrc** (Half-Life / ReHLDS) and **Xash3D FWGS**.
 
+> **IMPORTANT:** Building a playable game requires **two additional repositories** besides this one:
+> - [MSCScripts](https://github.com/MSRevive/MSCScripts) -- game scripts (needed to generate `scripts.pak`)
+> - [assets](https://github.com/MSRevive/assets) -- maps, models, sounds, textures
+>
+> Without these, the DLLs will compile but the game will not run. See [Building a Playable Game](#building-a-playable-game) below.
+
 ---
 
 ## Prerequisites
@@ -133,6 +139,60 @@ The Xash3D build also compiles and deploys:
 - **steam_broker.exe** -- Steam authentication bridge (optional, for connecting to GoldSrc servers)
 - Engine binaries: `xash.dll`, `ref_gl.dll`, `ref_soft.dll`, `filesystem_stdio.dll`, `SDL2.dll`, `vgui.dll`, `vgui_support.dll`
 - Engine resources: `extras.pk3`, `gfx.wad`, `fonts.wad`
+
+---
+
+## Client-Server Connection and Steam AppID
+
+For a Xash3D client to successfully connect to a GoldSrc/ReHLDS server with Steam authentication, both sides must agree on the same **Steam AppID**. Here's how each component uses it:
+
+### Server side (ReHLDS)
+
+The MSR-modified ReHLDS engine has the AppID **hardcoded to `1961680`** (MS Rebirth) in `sv_main.cpp`:
+
+```cpp
+#define MSS_APPID 1961680
+int GetGameAppID(void) { return MSS_APPID; }
+```
+
+On startup, the dedicated server writes this value to `steam_appid.txt` and registers with Steam master servers under AppID 1961680. **This cannot be changed at runtime** -- it requires recompiling the engine.
+
+### Client side (Xash3D + Steam Broker)
+
+The client needs two things for Steam authentication:
+
+| File | Value | Purpose |
+|------|-------|---------|
+| `steam_appid.txt` | `70` | Initializes Steam SDK (must be Half-Life's AppID so Steam recognizes the game) |
+| `steam_browse_appid.txt` | `1961680` | Tells the broker which AppID to query for the server browser |
+
+The [Steam Broker](https://github.com/Deoroot/Steam-Broker-Xash3D-MSR) handles the translation: it initializes with AppID 70 (Half-Life, required by Steam) but generates auth tickets that are valid for connecting to servers running under AppID 1961680.
+
+### How connection works
+
+```
+Xash3D client                    Steam Broker (local)              ReHLDS server
+     |                                |                                  |
+     |-- sb_connect ip:port --------->|                                  |
+     |                                |-- InitiateGameConnection() -->   |
+     |                                |   (Steam SDK, AppID 70)          |
+     |<-- auth ticket ----------------|                                  |
+     |                                                                   |
+     |-- connect + ticket ------------------------------------------>    |
+     |                                                   validates ticket|
+     |<-- connection accepted -------------------------------------------|
+```
+
+### Server browser
+
+For the server browser to list MSR servers, the client needs:
+1. A modified `xash.dll` (included in `bins/dependencies/`) with GoldSrc master server support
+2. `xashcomm.lst` with `mastergs 127.0.0.1:27420`
+3. Steam Broker running with `steam_browse_appid.txt` set to `1961680`
+
+### GoldSrc client (standard Half-Life)
+
+GoldSrc clients connecting through Steam (hl.exe) use AppID 70 natively. The ReHLDS server accepts these connections because Steam's authentication system handles the cross-AppID validation. No broker is needed for GoldSrc clients.
 
 ---
 
