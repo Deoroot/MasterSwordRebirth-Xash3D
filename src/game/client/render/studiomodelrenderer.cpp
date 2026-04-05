@@ -70,7 +70,8 @@ static void FlushGearQueue(int base_num)
 	{
 		if (g_XashGearBaseNums[i] == base_num)
 		{
-			RenderModel(g_XashGearEnts[i]);
+			if (g_XashGearEnts[i] && g_XashGearEnts[i]->model)
+				RenderModel(g_XashGearEnts[i]);
 			g_XashGearEnts[i]     = g_XashGearEnts[g_XashGearQueueCount - 1];
 			g_XashGearBaseNums[i] = g_XashGearBaseNums[g_XashGearQueueCount - 1];
 			g_XashGearQueueCount--;

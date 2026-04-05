@@ -44,6 +44,14 @@ void Game_AddObjects(void)
 {
 	g_FirstRender = true;
 
+#ifdef XASH_BUILD
+	// Discard any gear pointers from the previous frame. If a map change
+	// destroyed the owning CGenericItem objects before FlushGearQueue ran,
+	// those pointers would be dangling. Resetting here prevents RenderModel
+	// from dereferencing stale memory during transparent / mirror passes.
+	g_XashGearQueueCount = 0;
+#endif
+
 	for (int i = 0; i < MSCLGlobals::m_ClModels.size(); i++)
 	{
 		cl_entity_t &Entity = MSCLGlobals::m_ClModels[i];
