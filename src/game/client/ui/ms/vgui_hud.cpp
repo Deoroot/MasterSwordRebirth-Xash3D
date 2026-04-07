@@ -206,8 +206,14 @@ CHUDPanel::CHUDPanel(Panel* pParent) : VGUI_MainPanel(0, 0, 0, ScreenWidth, Scre
 	m_HUDElements.push_back(m_QuickSlot = new VGUI_QuickSlot(this));
 }
 
-CHUDPanel::~CHUDPanel() 
+CHUDPanel::~CHUDPanel()
 {
+	// Clear window vectors first. VGUI may cascade-delete CInfoWindow children
+	// before the rest of this destructor runs. Clearing here prevents Think()
+	// or UpdateInfoWindows() from accessing those freed pointers.
+	std::vector<CInfoWindow*>().swap(m_InfoWindows);
+	std::vector<CInfoWindow*>().swap(m_HelpWindows);
+
 	delete m_ID;
 	delete m_StartSayText;
 	delete m_DebugText;
@@ -222,22 +228,21 @@ CHUDPanel::~CHUDPanel()
 		delete m_Consoles[i];
 	}
 
-	//Remove all info windows
-	while (m_InfoWindows.size() != 0)
-		RemoveInfoWindow(m_InfoWindows, 0);
-
-	while (m_InfoWindows.size() != 0)
-		RemoveInfoWindow(m_HelpWindows, 0);
-		
 	std::vector<IHUD*>().swap(m_HUDElements);
 	std::vector<VGUI_EventConsole*>().swap(m_Consoles);
-
-	m_InfoWindows.clear();
-	m_HelpWindows.clear();
 }
 
 void CHUDPanel::Cleanup()
 {
+	// Clear window tracking vectors before deleting other panels.
+	// Subsequent deletes or VGUI Think() callbacks must not access freed windows.
+	while (m_InfoWindows.size() != 0)
+		RemoveInfoWindow(m_InfoWindows, 0);
+	while (m_HelpWindows.size() != 0)
+		RemoveInfoWindow(m_HelpWindows, 0);
+	std::vector<CInfoWindow*>().swap(m_InfoWindows);
+	std::vector<CInfoWindow*>().swap(m_HelpWindows);
+
 	delete m_ID;
 	delete m_StartSayText;
 	delete m_DebugText;
@@ -252,17 +257,8 @@ void CHUDPanel::Cleanup()
 		delete m_Consoles[i];
 	}
 
-	//Remove all info windows
-	while (m_InfoWindows.size() != 0)
-		RemoveInfoWindow(m_InfoWindows, 0);
-
-	while (m_HelpWindows.size() != 0)
-		RemoveInfoWindow(m_HelpWindows, 0);
-		
 	std::vector<IHUD*>().swap(m_HUDElements);
 	std::vector<VGUI_EventConsole*>().swap(m_Consoles);
-	std::vector<CInfoWindow*>().swap(m_InfoWindows);
-	std::vector<CInfoWindow*>().swap(m_HelpWindows);
 }
 
 // Create new Info window
