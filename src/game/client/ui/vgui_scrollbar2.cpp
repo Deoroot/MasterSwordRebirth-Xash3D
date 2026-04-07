@@ -184,7 +184,8 @@ void ScrollBar2::addIntChangeSignal(IntChangeSignal *s)
 
 void ScrollBar2::setRange(int min, int max)
 {
-	_slider->setRange(min, max);
+	if (_slider)
+		_slider->setRange(min, max);
 }
 
 void ScrollBar2::fireIntChangeSignal()
@@ -251,6 +252,9 @@ Slider2 *ScrollBar2::getSlider()
 
 void ScrollBar2::doButtonPressed(int buttonIndex)
 {
+	if (!_slider)
+		return;
+
 	if (buttonIndex == 0)
 	{
 		_slider->setValue(_slider->getValue() - _buttonPressedScrollValue);
@@ -268,12 +272,14 @@ void ScrollBar2::setButtonPressedScrollValue(int value)
 
 void ScrollBar2::setRangeWindow(int rangeWindow)
 {
-	_slider->setRangeWindow(rangeWindow);
+	if (_slider)
+		_slider->setRangeWindow(rangeWindow);
 }
 
 void ScrollBar2::setRangeWindowEnabled(bool state)
 {
-	_slider->setRangeWindowEnabled(state);
+	if (_slider)
+		_slider->setRangeWindowEnabled(state);
 }
 
 void ScrollBar2::validate()
