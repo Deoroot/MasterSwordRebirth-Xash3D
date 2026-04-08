@@ -29,6 +29,7 @@ namespace vgui
 	{
 	public:
 		ScrollBar2(int x, int y, int wide, int tall, bool vertical);
+		virtual ~ScrollBar2();
 
 	public:
 		virtual void setValue(int value);

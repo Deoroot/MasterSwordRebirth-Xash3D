@@ -27,7 +27,8 @@ namespace
 		}
 		virtual void intChanged(int value, Panel *panel)
 		{
-			_scrollBar->fireIntChangeSignal();
+			if (_scrollBar)
+				_scrollBar->fireIntChangeSignal();
 		}
 
 	protected:
@@ -50,7 +51,8 @@ namespace
 	public:
 		virtual void actionPerformed(Panel *panel)
 		{
-			_scrollBar->doButtonPressed(_buttonIndex);
+			if (_scrollBar)
+				_scrollBar->doButtonPressed(_buttonIndex);
 		}
 	};
 
@@ -123,6 +125,15 @@ ScrollBar2::ScrollBar2(int x, int y, int wide, int tall, bool vertical) : Panel(
 	setButtonPressedScrollValue(15);
 
 	validate();
+}
+
+ScrollBar2::~ScrollBar2()
+{
+	// Nullify before Panel destructor cascade-deletes children.
+	// This prevents signals from calling into freed Slider2/Button objects.
+	_slider = null;
+	_button[0] = null;
+	_button[1] = null;
 }
 
 void ScrollBar2::setSize(int wide, int tall)

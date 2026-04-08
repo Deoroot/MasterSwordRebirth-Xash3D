@@ -26,6 +26,7 @@ namespace vgui
 	private:
 		bool _vertical;
 		bool _dragging;
+		bool _alive;
 		int _nobPos[2];
 		int _nobDragStartPos[2];
 		int _dragStartPos[2];
@@ -38,8 +39,10 @@ namespace vgui
 
 	public:
 		Slider2(int x, int y, int wide, int tall, bool vertical);
+		virtual ~Slider2();
 
 	public:
+		bool isAlive() const { return _alive; }
 		virtual void setValue(int value);
 		virtual int getValue();
 		virtual bool isVertical();

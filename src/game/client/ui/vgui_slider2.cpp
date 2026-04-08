@@ -28,18 +28,21 @@ public:
 public:
 	void cursorMoved(int x,int y,Panel* panel)
 	{
-		_slider->privateCursorMoved(x,y,panel);
+		if(_slider && _slider->isAlive())
+			_slider->privateCursorMoved(x,y,panel);
 	}
 	void cursorEntered(Panel* panel){}
 	void cursorExited(Panel* panel){}
 	void mouseDoublePressed(MouseCode code,Panel* panel){}
 	void mousePressed(MouseCode code,Panel* panel)
 	{
-		_slider->privateMousePressed(code,panel);
+		if(_slider && _slider->isAlive())
+			_slider->privateMousePressed(code,panel);
 	}
 	void mouseReleased(MouseCode code,Panel* panel)
 	{
-		_slider->privateMouseReleased(code,panel);
+		if(_slider && _slider->isAlive())
+			_slider->privateMouseReleased(code,panel);
 	}
 	void mouseWheeled(int delta,Panel* panel){}
 	void keyPressed(KeyCode code,Panel* panel){}
@@ -53,6 +56,7 @@ Slider2::Slider2(int x,int y,int wide,int tall,bool vertical) : Panel(x,y,wide,t
 {
 	_vertical=vertical;
 	_dragging=false;
+	_alive=true;
 	_value=0;
 	_range[0]=0;
 	_range[1]=299;
@@ -61,6 +65,18 @@ Slider2::Slider2(int x,int y,int wide,int tall,bool vertical) : Panel(x,y,wide,t
 	_buttonOffset=0;
 	recomputeNobPosFromValue();
 	addInputSignal(new FooDefaultSliderSignal(this));
+}
+
+Slider2::~Slider2()
+{
+	_alive=false;
+	if(_dragging)
+	{
+		_dragging=false;
+		App *app=getApp();
+		if(app)
+			app->setMouseCapture(null);
+	}
 }
 
 void Slider2::setSize(int wide,int tall)
